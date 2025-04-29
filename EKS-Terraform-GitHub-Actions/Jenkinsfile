@@ -7,17 +7,23 @@ pipeline {
     }
 
     stages {
-        stage('Terraform Workflow') {
+        stage('Terraform Init, Validate & Action') {
             steps {
                 withAWS(credentials: 'aws-creds', region: 'us-east-1') {
                     git branch: 'main', url: 'https://github.com/iam-srihari/EKS-Terraform-GitHub-Actions.git'
                     dir('eks') {
                         script {
-                            // Initialize and validate Terraform
+                            echo "📁 Current directory: ${pwd()}"
+                            sh 'ls -l'
+                            sh 'cat backend.tf || echo "No backend.tf found!"'
+                            sh 'echo 🔁 Running terraform init...'
                             sh 'terraform init -reconfigure'
+
+                            sh 'echo ✅ Validating Terraform...'
                             sh 'terraform validate'
 
-                            // Perform Terraform action
+                            echo "🚀 Running Terraform Action: ${params.Terraform_Action}"
+
                             if (params.Terraform_Action == 'plan') {
                                 sh "terraform plan -var-file=${params.Environment}.tfvars"
                             } else if (params.Terraform_Action == 'apply') {
@@ -25,7 +31,7 @@ pipeline {
                             } else if (params.Terraform_Action == 'destroy') {
                                 sh "terraform destroy -var-file=${params.Environment}.tfvars -auto-approve"
                             } else {
-                                error "Invalid Terraform_Action: ${params.Terraform_Action}"
+                                error "❌ Invalid Terraform_Action: ${params.Terraform_Action}"
                             }
                         }
                     }
