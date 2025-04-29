@@ -7,33 +7,17 @@ pipeline {
     }
 
     stages {
-        stage('Checkout & Terraform Init') {
+        stage('Terraform Workflow') {
             steps {
                 withAWS(credentials: 'aws-creds', region: 'us-east-1') {
                     git branch: 'main', url: 'https://github.com/iam-srihari/EKS-Terraform-GitHub-Actions.git'
                     dir('eks') {
-                        // Reconfigure backend
-                        sh 'terraform init -reconfigure'
-                    }
-                }
-            }
-        }
-
-        stage('Terraform Validate') {
-            steps {
-                withAWS(credentials: 'aws-creds', region: 'us-east-1') {
-                    dir('eks') {
-                        sh 'terraform validate'
-                    }
-                }
-            }
-        }
-
-        stage('Terraform Action') {
-            steps {
-                withAWS(credentials: 'aws-creds', region: 'us-east-1') {
-                    dir('eks') {
                         script {
+                            // Initialize and validate Terraform
+                            sh 'terraform init -reconfigure'
+                            sh 'terraform validate'
+
+                            // Perform Terraform action
                             if (params.Terraform_Action == 'plan') {
                                 sh "terraform plan -var-file=${params.Environment}.tfvars"
                             } else if (params.Terraform_Action == 'apply') {
